@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absence Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Build Version: 1.0.16 -->
+    <script>
+        const version = "1.0.16";
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h2>Absence Calculator</h2>
+        </header>
+        <main>
+            <form id="travelForm">
+                <div class="form-group">
+                    <label for="visaIssueDate">VISA Issue Date:</label>
+                    <input type="date" id="visaIssueDate" name="visaIssueDate" required>
+                    <span class="info-icon" title="For visas applied outside the country, add a travel record: departure on issue date, return on first entry.">ⓘ</span>
+                </div>
+                <div class="form-group">
+                    <label for="departureDate">Departure Date:</label>
+                    <input type="date" id="departureDate" name="departureDate" required>
+                    <label for="entryDate">Return Date:</label>
+                    <input type="date" id="entryDate" name="entryDate" required>
+                    <button type="button" class="btn" onclick="addTravelDates()">Add</button>
+                </div>
+            </form>
+
+            <div class="button-group" id="buttonGroup">
+                <button type="button" class="btn" id="exportButton" onclick="exportData()">Backup</button>
+                <button type="button" class="btn" onclick="importData()">Restore</button>
+                <input type="file" id="importFile" style="display:none" onchange="handleFileSelect(event)">
+            </div>
+
+            <h3 style="display:none;">Out of Country Dates</h3>
+            <button type="button" id="toggleOutOfCountryTable" style="display:none;" class="btn" onclick="toggleOutOfCountryTable()">Show Out of Country Dates</button>
+            <table id="outOfCountryTable" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="outOfCountryTableBody">
+                    <!-- Rows will be added here dynamically -->
+                </tbody>
+            </table>
+
+            <h3>Travel Dates</h3>
+            <table id="travelTable" class="highlight-empty">
+                <thead>
+                    <tr>
+                        <th>Departure <br>(yyyy/MM/dd)</th>
+                        <th>Return <br>(yyyy/MM/dd)</th>
+                        <th style="display:none;">Days at Beginning</th>
+                        <th>Days <br>absent</th>
+                        <th>Accumulated <br>days</th>
+                        <th>Over 180 <br>Days</th>
+                        <th>Edit / Delete</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Rows will be added here dynamically -->
+                </tbody>
+            </table>
+
+            <button type="button" class="btn" id="downloadAbsenceData" style="margin-top: 20px; display: none;" onclick="downloadOutOfCountryCSV()">Download Absence Data</button>
+        </main>
+
+        <section class="reference">
+            <h4>Reference</h4>
+            <a href="https://www.gov.uk/government/publications/continuous-residence/continuous-residence-guidance-accessible-version" target="_blank">Continuous residence guidance</a>
+        </section>
+
+        <footer>
+            <p>Version: <span id="versionDisplay"></span></p>
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById("versionDisplay").innerText = version;
+
+        let travelDates = [];
+        let visaIssueDate = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTable();
+        });
+
+        function addTravelDates() {
+            visaIssueDate = document.getElementById('visaIssueDate').value;
+            const departureDate = document.getElementById('departureDate').value;
+            const entryDate = document.getElementById('entryDate').value;
+
+            if (!departureDate || !entryDate) {
+                alert('Please fill in both dates.');
+                return;
+            }
+
+            if (new Date(entryDate) < new Date(departureDate)) {
+                alert('Entry date cannot be earlier than departure date.');
+                return;
+            }
+
+            travelDates.push({ departureDate, entryDate });
+            travelDates.sort((a, b) => new Date(a.departureDate) - new Date(b.departureDate));
+
+            updateTable();
+            updateOutOfCountryTable();
+            populateAdditionalColumns();
+
+            // Clear the date picker fields
+            document.getElementById('departureDate').value = '';
+            document.getElementById('entryDate').value = '';
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = ''; // Clear existing rows
+
+            const exportButton = document.getElementById('exportButton');
+            if (travelDates.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 7;
+                cell.textContent = 'No travel dates recorded.';
+                cell.style.textAlign = 'center';
+                document.getElementById('downloadAbsenceData').style.display = 'none';
+                exportButton.style.display = 'none';
+            } else {
+                exportButton.style.display = 'inline-block';
+                document.getElementById('downloadAbsenceData').style.display = 'inline-block';
+                travelDates.forEach((dates, index) => {
+                    const row = tbody.insertRow();
+                    const cell1 = row.insertCell(0);
+                    const cell2 = row.insertCell(1);
+                    const cell3 = row.insertCell(2);
+                    const cell4 = row.insertCell(3);
+                    const cell5 = row.insertCell(4);
+                    const cell6 = row.insertCell(5);
+                    const cell7 = row.insertCell(6);
+
+                    cell1.id = `departureDate-${index}`;
+                    cell2.id = `entryDate-${index}`;
+                    cell3.id = `daysAtBeginning-${index}`;
+                    cell4.id = `daysOutside-${index}`;
+                    cell5.id = `daysAtEnd-${index}`;
+                    cell6.id = `violation-${index}`;
+                    cell7.id = `action-${index}`;
+
+                    cell1.textContent = formatDate(dates.departureDate);
+                    cell2.textContent = formatDate(dates.entryDate);
+                    cell3.style.display = 'none'; // Hide Days at Beginning
+                    cell3.textContent = ''; // Placeholder for Days at Beginning
+                    cell4.textContent = ''; // Placeholder for Days Outside Country
+                    cell5.textContent = ''; // Placeholder for Days at End
+                    cell6.textContent = ''; // Placeholder for Violation
+                    cell7.innerHTML = `<button id="deleteButton-${index}" class="btn delete-button" onclick="deleteRow(${index})">Click</button>`;
+
+                    highlightPreVisaDate(dates.departureDate, index);
+                });
+
+                highlightOverlappingDates();
+            }
+        }
+
+        function populateAdditionalColumns() {
+            travelDates.forEach((dates, index) => {
+                document.getElementById(`daysAtBeginning-${index}`).textContent = calculateDaysAtBeginning(dates.departureDate);
+                document.getElementById(`daysOutside-${index}`).textContent = calculateDaysOutside(dates.departureDate, dates.entryDate);
+                document.getElementById(`daysAtEnd-${index}`).textContent = calculateDaysAtEnd(dates.entryDate);
+                const violationData = checkViolation(dates.departureDate, dates.entryDate);
+                const violationCell = document.getElementById(`violation-${index}`);
+                violationCell.textContent = violationData;
+                if (violationData !== 'No') {
+                    violationCell.style.color = 'red';
+                } else {
+                    violationCell.style.color = 'black';
+                }
+            });
+        }
+
+        function deleteRow(index) {
+            const deletedDate = travelDates.splice(index, 1)[0];
+            document.getElementById('departureDate').value = deletedDate.departureDate;
+            document.getElementById('entryDate').value = deletedDate.entryDate;
+            updateTable();
+            updateOutOfCountryTable();
+            populateAdditionalColumns();
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString + "T00:00:00Z"); // Ensure date is in GMT+0000 timezone
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            return `${year}/${month}/${day}`;
+        }
+
+        function parseDate(dateString) {
+            const parts = dateString.split('/');
+            return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])); // Date.UTC handles the month indexing
+        }
+
+        function exportData() {
+            const data = {
+                visaIssueDate: visaIssueDate,
+                travelDates: travelDates
+            };
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'travel-data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contents = e.target.result;
+                const data = JSON.parse(contents);
+                visaIssueDate = data.visaIssueDate;
+                travelDates = data.travelDates;
+                document.getElementById('visaIssueDate').value = visaIssueDate;
+                updateTable();
+                updateOutOfCountryTable();
+                populateAdditionalColumns();
+            };
+            reader.readAsText(file);
+        }
+
+        function highlightOverlappingDates() {
+            for (let i = 0; i < travelDates.length; i++) {
+                const currentDepartureDate = new Date(travelDates[i].departureDate + "T00:00:00Z");
+                const currentEntryDate = new Date(travelDates[i].entryDate + "T00:00:00Z");
+
+                for (let j = i + 1; j < travelDates.length; j++) {
+                    const nextDepartureDate = new Date(travelDates[j].departureDate + "T00:00:00Z");
+                    const nextEntryDate = new Date(travelDates[j].entryDate + "T00:00:00Z");
+
+                    if (nextDepartureDate <= currentEntryDate && nextEntryDate >= currentDepartureDate) {
+                        document.getElementById(`departureDate-${i}`).classList.add('overlap');
+                        document.getElementById(`entryDate-${i}`).classList.add('overlap');
+                        document.getElementById(`departureDate-${j}`).classList.add('overlap');
+                        document.getElementById(`entryDate-${j}`).classList.add('overlap');
+                    }
+                }
+            }
+        }
+
+        function highlightPreVisaDate(departureDate, index) {
+            const visaDate = new Date(visaIssueDate + "T00:00:00Z");
+            const depDate = new Date(departureDate + "T00:00:00Z");
+
+            if (depDate < visaDate) {
+                document.getElementById(`departureDate-${index}`).classList.add('pre-visa');
+            }
+        }
+
+        function calculateDaysAtBeginning(departureDate) {
+            const depDate = new Date(departureDate + "T00:00:00Z");
+            const oneYearBeforeDepDate = new Date(depDate);
+            oneYearBeforeDepDate.setUTCFullYear(depDate.getUTCFullYear() - 1);
+
+            let daysOut = 0;
+            const outOfCountryTable = document.getElementById('outOfCountryTableBody');
+            const rows = Array.from(outOfCountryTable.rows);
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const date = parseDate(row.cells[0].textContent);
+                const status = row.cells[1].textContent;
+
+                if (date >= oneYearBeforeDepDate && date < depDate && status === 'out') {
+                    daysOut++;
+                }
+            }
+
+            return daysOut;
+        }
+
+        function calculateDaysAtEnd(entryDate) {
+            const entDate = new Date(entryDate + "T00:00:00Z");
+            const oneYearBeforeEntDate = new Date(entDate);
+            oneYearBeforeEntDate.setUTCFullYear(entDate.getUTCFullYear() - 1);
+
+            let daysOut = 0;
+            const outOfCountryTable = document.getElementById('outOfCountryTableBody');
+            const rows = Array.from(outOfCountryTable.rows);
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const date = parseDate(row.cells[0].textContent);
+                const status = row.cells[1].textContent;
+
+                if (date >= oneYearBeforeEntDate && date < entDate && status === 'out') {
+                    daysOut++;
+                }
+            }
+
+            return daysOut;
+        }
+
+        function calculateDaysOutside(departureDate, entryDate) {
+            const depDate = new Date(departureDate + "T00:00:00Z");
+            const entDate = new Date(entryDate + "T00:00:00Z");
+
+            let daysOut = 0;
+            for (let d = new Date(depDate); d < entDate; d.setUTCDate(d.getUTCDate() + 1)) {
+                const formattedDate = formatDate(d.toISOString().split('T')[0]);
+                const outOfCountryTable = document.getElementById('outOfCountryTableBody');
+                const rows = Array.from(outOfCountryTable.rows);
+
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const date = row.cells[0].textContent;
+                    const status = row.cells[1].textContent;
+
+                    if (date === formattedDate && status === 'out') {
+                        daysOut++;
+                    }
+                }
+            }
+
+            return daysOut;
+        }
+
+        function checkViolation(departureDate, entryDate) {
+            const depDate = new Date(departureDate + "T00:00:00Z");
+            const entDate = new Date(entryDate + "T00:00:00Z");
+
+            const outOfCountryTable = document.getElementById('outOfCountryTableBody');
+            const rows = Array.from(outOfCountryTable.rows);
+
+            let violationDays = [];
+            for (let d = new Date(depDate); d <= entDate; d.setUTCDate(d.getUTCDate() + 1)) {
+                const oneYearBeforeDate = new Date(d);
+                oneYearBeforeDate.setUTCFullYear(d.getUTCFullYear() - 1);
+
+                let daysOut = 0;
+
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const date = parseDate(row.cells[0].textContent);
+                    const status = row.cells[1].textContent;
+
+                    if (date >= oneYearBeforeDate && date <= d && status === 'out') {
+                        daysOut++;
+                    }
+                }
+
+                if (daysOut > 180) {
+                    violationDays.push(formatDate(d.toISOString().split('T')[0]));
+                }
+            }
+
+            if (violationDays.length > 0) {
+                return violationDays.length === 1 ? violationDays[0] : `${violationDays[0]} to ${violationDays[violationDays.length - 1]}`;
+            }
+
+            return 'No';
+        }
+
+        function updateOutOfCountryTable() {
+            const tbody = document.getElementById('outOfCountryTableBody');
+            tbody.innerHTML = ''; // Clear existing rows
+
+            if (!visaIssueDate) {
+                return;
+            }
+
+            const visaDate = new Date(visaIssueDate + "T00:00:00Z");
+            let lastEntryDate = new Date(travelDates[travelDates.length - 1].entryDate + "T00:00:00Z");
+
+            // Create a map to hold out of country dates
+            const outOfCountryDates = new Map();
+
+            // Initialize the map with all dates from visa issue date to last entry date
+            for (let d = new Date(visaDate); d <= lastEntryDate; d.setUTCDate(d.getUTCDate() + 1)) {
+                const formattedDate = formatDate(d.toISOString().split('T')[0]);
+                outOfCountryDates.set(formattedDate, 'in');
+            }
+
+            // Mark out of country dates
+            travelDates.forEach(dates => {
+                let depDate = new Date(dates.departureDate + "T00:00:00Z");
+                let entDate = new Date(dates.entryDate + "T00:00:00Z");
+
+                for (let d = new Date(depDate); d < entDate; d.setUTCDate(d.getUTCDate() + 1)) {
+                    const formattedDate = formatDate(d.toISOString().split('T')[0]);
+                    if (outOfCountryDates.has(formattedDate) && d > depDate) { // Ensure depDate is not marked
+                        outOfCountryDates.set(formattedDate, 'out');
+                    }
+                }
+            });
+
+            // Populate the out of country table
+            outOfCountryDates.forEach((status, date) => {
+                const row = tbody.insertRow();
+                const cell1 = row.insertCell(0);
+                const cell2 = row.insertCell(1);
+
+                cell1.textContent = date;
+                cell2.textContent = status;
+            });
+        }
+
+        function toggleOutOfCountryTable() {
+            const outOfCountryTable = document.getElementById('outOfCountryTable');
+            const toggleButton = document.getElementById('toggleOutOfCountryTable');
+            if (outOfCountryTable.style.display === "none") {
+                outOfCountryTable.style.display = "table";
+                toggleButton.textContent = "Hide Out of Country Dates";
+            } else {
+                outOfCountryTable.style.display = "none";
+                toggleButton.textContent = "Show Out of Country Dates";
+            }
+        }
+
+        function downloadOutOfCountryCSV() {
+            const rows = [['Date', 'Status']];
+            const outOfCountryTable = document.getElementById('outOfCountryTableBody');
+            const rowCount = outOfCountryTable.rows.length;
+
+            for (let i = 0; i < rowCount; i++) {
+                const row = outOfCountryTable.rows[i];
+                const date = row.cells[0].textContent;
+                const status = row.cells[1].textContent;
+                if (status === 'out') {
+                    rows.push([date, status]);
+                }
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+
+            rows.forEach(rowArray => {
+                let row = rowArray.join(",");
+                csvContent += row + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "out_of_country_dates.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML Obfuscator</title>
+    <style>
+        body {
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        textarea {
+            width: 300px;
+            height: 100px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>HTML Obfuscator</h2>
+    <input type="file" id="fileInput" accept=".html">
+    <button onclick="loadFile()">Upload and Obfuscate</button>
+    <textarea id="obfuscatedOutput" readonly></textarea>
+    <button onclick="downloadObfuscated()">Download Obfuscated File</button>
+
+    <script>
+        function loadFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) {
+                alert('Please select a file first.');
+                return;
+            }
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const originalContent = e.target.result;
+                const obfuscatedContent = obfuscateHTML(originalContent);
+                document.getElementById('obfuscatedOutput').value = obfuscatedContent;
+            };
+            reader.readAsText(file);
+        }
+
+        function obfuscateHTML(html) {
+            let obfuscated = html;
+
+            // Entity encoding for special characters
+            obfuscated = obfuscated.replace(/[\u00A0-\u9999<>\&]/gim, function(i) {
+                return '&#' + i.charCodeAt(0) + ';';
+            });
+
+            // Simplified example of JavaScript obfuscation and whitespace manipulation
+            obfuscated = obfuscated.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, function(match, p1) {
+                return '<script>' + btoa(p1).replace(/=/g, '') + '</script>';
+            });
+
+            return obfuscated;
+        }
+
+        function downloadObfuscated() {
+            const obfuscatedContent = document.getElementById('obfuscatedOutput').value;
+            if (!obfuscatedContent) {
+                alert('No obfuscated content available to download.');
+                return;
+            }
+            const blob = new Blob([obfuscatedContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'obfuscated.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

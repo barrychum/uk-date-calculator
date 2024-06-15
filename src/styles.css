@@ -1,0 +1,158 @@
+/* Build Version: 1.0.16 */
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    flex: 1;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 2em;
+    color: #1d3b72;
+    margin-bottom: 10px;
+}
+
+h3 {
+    font-size: 1.5em;
+    color: #1d3b72;
+    margin-top: 20px;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    position: relative;
+}
+
+label {
+    margin-right: 10px;
+    font-weight: bold;
+    color: #1d3b72;
+}
+
+input[type="date"] {
+    margin-right: 10px;
+    padding: 5px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #1d3b72;
+    background-color: #fff;
+}
+
+.button-group, .form-group {
+    display: flex;
+    align-items: center;
+}
+
+.btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #1d3b72;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #162c54;
+}
+
+.delete-button {
+    background-color: #1d3b72;
+    margin-right: 0;
+}
+
+table {
+    border-collapse: collapse;
+    margin-top: 20px;
+    width: 100%;
+    background-color: #e9ecef;
+}
+
+.highlight-empty tbody:empty::before {
+    content: "No travel dates recorded.";
+    display: block;
+    text-align: center;
+    padding: 12px;
+    color: #868e96;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #1d3b72;
+    color: white;
+    font-size: 1em;
+}
+
+td {
+    font-size: 0.9em;
+}
+
+.overlap {
+    background-color: red;
+    color: white;
+}
+
+.pre-visa {
+    background-color: yellow;
+}
+
+footer {
+    text-align: center;
+    font-size: 12px;
+    padding: 10px 0;
+    margin-top: 20px;
+}
+
+.reference {
+    text-align: left;
+    margin-top: 20px;
+}
+
+.reference h4 {
+    margin-bottom: 5px;
+}
+
+.reference a {
+    color: #1d3b72;
+    text-decoration: none;
+}
+
+.reference a:hover {
+    text-decoration: underline;
+}

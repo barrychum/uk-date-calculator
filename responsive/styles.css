@@ -1,0 +1,120 @@
+/* Build Version: 1.0.17 */
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+header {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.data-entry, .buttons, .travel-dates, .reference {
+    width: 100%;
+}
+
+.data-entry {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+.travel-dates {
+    width: 100%;
+}
+
+h2, h3, h4 {
+    color: #1d3b72;
+}
+
+h2 {
+    font-size: 2em;
+}
+
+h3 {
+    font-size: 1.5em;
+}
+
+form {
+    flex: 1;
+    min-width: 300px;
+}
+
+.table {
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    margin-top: 10px;
+    background-color: #1d3b72;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #162c54;
+}
+
+.footer {
+    text-align: center;
+    font-size: 12px;
+    padding: 10px 0;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .data-entry {
+        flex-direction: row;
+        align-items: flex-end;
+    }
+    .buttons {
+        flex-direction: row;
+    }
+}
+
+@media (min-width: 1024px) {
+    .container {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    .data-entry, .buttons, .travel-dates, .reference, .footer {
+        flex: 1;
+        margin-right: 20px;
+    }
+    .buttons {
+        align-items: center;
+        justify-content: flex-end;
+    }
+    .footer {
+        justify-content: flex-end;
+    }
+}
